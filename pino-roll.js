@@ -1,7 +1,13 @@
-'use strict'
+"use strict";
 
-const SonicBoom = require('sonic-boom')
-const { buildFileName, detectLastNumber, parseSize, parseFrequency, getNext } = require('./lib/utils')
+const SonicBoom = require("sonic-boom");
+const {
+  buildFileName,
+  detectLastNumber,
+  parseSize,
+  parseFrequency,
+  getNext,
+} = require("./lib/utils");
 
 /**
  * @typedef {object} Options
@@ -38,47 +44,60 @@ const { buildFileName, detectLastNumber, parseSize, parseFrequency, getNext } = 
  * @param {PinoRollOptions} options - to configure file destionation, and rolling rules.
  * @returns {SonicBoom} the Sonic boom steam, usabled as Pino transport.
  */
-module.exports = async function ({ file, size, frequency, extension, ...opts } = {}) {
-  const frequencySpec = parseFrequency(frequency)
+module.exports = async function ({
+  file,
+  size,
+  frequency,
+  extension,
+  formatDate,
+  ...opts
+} = {}) {
+  const frequencySpec = parseFrequency(frequency);
 
-  let number = await detectLastNumber(file, frequencySpec?.start)
+  let number = await detectLastNumber(file, frequencySpec?.start);
 
-  let currentSize = 0
-  const maxSize = parseSize(size)
+  let currentSize = 0;
+  const maxSize = parseSize(size);
 
-  const destination = new SonicBoom({ ...opts, dest: buildFileName(file, number, extension) })
+  const destination = new SonicBoom({
+    ...opts,
+    dest: buildFileName(file, number, extension, formatDate),
+  });
 
-  let rollTimeout
+  let rollTimeout;
   if (frequencySpec) {
-    destination.once('close', () => {
-      clearTimeout(rollTimeout)
-    })
-    scheduleRoll()
+    destination.once("close", () => {
+      clearTimeout(rollTimeout);
+    });
+    scheduleRoll();
   }
 
   if (maxSize) {
-    destination.on('write', writtenSize => {
-      currentSize += writtenSize
+    destination.on("write", (writtenSize) => {
+      currentSize += writtenSize;
       if (currentSize >= maxSize) {
-        currentSize = 0
+        currentSize = 0;
         // delay to let the our destination finish its write
-        setTimeout(roll, 0)
+        setTimeout(() => roll(++number), 0);
       }
-    })
+    });
   }
 
-  function roll () {
-    destination.reopen(buildFileName(file, ++number, extension))
+  function roll() {
+    destination.reopen(buildFileName(file, number, extension, formatDate));
   }
 
-  function scheduleRoll () {
-    clearTimeout(rollTimeout)
+  function scheduleRoll() {
+    clearTimeout(rollTimeout);
     rollTimeout = setTimeout(() => {
-      roll()
-      frequencySpec.next = getNext(frequency)
-      scheduleRoll()
-    }, frequencySpec.next - Date.now())
+      // Reset file number when day has changed
+      number = 0;
+      frequencySpec.next = getNext(frequency);
+
+      roll();
+      scheduleRoll();
+    }, frequencySpec.next - Date.now());
   }
 
-  return destination
-}
+  return destination;
+};
