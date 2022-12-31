@@ -21,7 +21,7 @@ import pino from 'pino'
 
 const transport = pino.transport({
   target: 'pino-roll',
-  options: { file: join('logs', 'log'), frequency: 'daily', mkdir: true }
+  options: { file: join('logs', '$DATE'), frequency: 'daily', mkdir: true }
 })
 
 const logger = pino(transport)
@@ -60,6 +60,8 @@ You can specify any of [Sonic-Boom options](https://github.com/pinojs/sonic-boom
   Using a numerical value will always create a new file upon startup.
 
 * `extension?` appends the provided string after the file number.
+* 
+* `formatDate?` format date in file name pattern
 
 ## License
 
