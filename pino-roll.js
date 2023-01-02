@@ -91,7 +91,7 @@ module.exports = async function ({
     clearTimeout(rollTimeout);
     rollTimeout = setTimeout(() => {
       // Reset file number when day has changed
-      number = 0;
+      number = 1;
       frequencySpec.next = getNext(frequency);
 
       roll();
